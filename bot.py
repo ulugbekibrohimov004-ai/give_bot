@@ -7,7 +7,7 @@ from aiogram.types import BotCommand, BotCommandScopeDefault, BotCommandScopeCha
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from config import BOT_TOKEN, ADMIN_IDS
-from database import init_db
+from database import init_db, init_guard_tables
 from scheduler import setup_scheduler
 from handlers import user, admin, member, support, group_guard
 
@@ -52,7 +52,7 @@ async def set_commands(bot: Bot):
 async def main():
     # DB ni ishga tushirish
     await init_db()
-    await db.init_guard_tables()
+    await init_guard_tables()
 
     # Google Sheets ga ulanish
     from config import USE_GOOGLE_SHEETS, GOOGLE_CREDENTIALS_FILE, SPREADSHEET_ID
@@ -67,11 +67,11 @@ async def main():
     dp = Dispatcher(storage=MemoryStorage())
 
     # Routerlarni qo'shish (tartib muhim!)
-    dp.include_router(admin.router)    # admin avval
+    dp.include_router(group_guard.router)  # guruh himoya AVVAL
+    dp.include_router(admin.router)    # admin
     dp.include_router(member.router)   # guruh eventlari
     dp.include_router(user.router)     # foydalanuvchi
     dp.include_router(support.router)  # support oxirida
-    dp.include_router(group_guard.router)  # guruh himoya
 
     # Scheduler ishga tushirish
     scheduler = setup_scheduler(bot)
