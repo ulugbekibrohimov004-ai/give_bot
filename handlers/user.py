@@ -20,7 +20,7 @@ from utils import check_membership, user_mention, time_remaining
 logger = logging.getLogger(__name__)
 router = Router()
 
-GROUP_INVITE_LINK = "https://t.me/+qpPPqYGXKqs3ZmIy"
+GROUP_INVITE_LINK = "https://t.me/+w-NZES_8zLRlZjc6"
 
 
 class TransferState(StatesGroup):
@@ -62,12 +62,16 @@ async def cmd_start(message: Message, bot: Bot):
     is_new = await db.register_user(user.id, user.username, user.full_name)
     is_admin = user.id in ADMIN_IDS
 
-    # Arxiv kanalga yozish
+    # Arxiv kanalga faqat 1 marta yozish
     if is_new:
-        await db.backup_user_to_channel(
-            bot, user.id, user.full_name, user.username,
-            BOT_NAME, BACKUP_CHANNEL_ID
-        )
+        # Avval kanalda bormi tekshirish
+        already_backed = await db.is_user_backed_up(user.id)
+        if not already_backed:
+            await db.backup_user_to_channel(
+                bot, user.id, user.full_name, user.username,
+                BOT_NAME, BACKUP_CHANNEL_ID
+            )
+            await db.mark_user_backed_up(user.id)
 
     if not await is_member_check(bot, user.id):
         invite = await get_invite(bot)

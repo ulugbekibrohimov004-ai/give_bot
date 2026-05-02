@@ -49,6 +49,22 @@ async def send_dm(bot: Bot, user_id: int, text: str):
         pass
 
 
+async def warn_in_group(bot: Bot, chat_id: int, user_id: int, username: str, full_name: str, reason: str):
+    """Guruhda ogohlantirish — 5 soniyada o'chadi"""
+    import asyncio
+    mention = f"@{username}" if username else full_name
+    try:
+        msg = await bot.send_message(
+            chat_id,
+            f"{mention}, {reason}",
+            parse_mode='HTML'
+        )
+        await asyncio.sleep(5)
+        await msg.delete()
+    except Exception:
+        pass
+
+
 # ─── GURUH XABARLARINI TEKSHIRISH ────────────────────────────
 
 @router.message(F.chat.id == GROUP_ID)
@@ -101,16 +117,20 @@ async def guard_messages(message: Message, bot: Bot):
             except Exception:
                 pass
             need = link_limit - ref_count
-            await send_dm(
-                bot, user_id,
-                f"🔗 <b>Link tashlab bo'lmaydi!</b>\n\n"
-                f"Guruhga link tashlash uchun <b>{link_limit} ta</b> odam qo'shishingiz kerak.\n"
+            dm_text = (
+                f"🔗 <b>Link tashlab bolmaydi!</b>\n\n"
+                f"Guruhga link tashlash uchun <b>{link_limit} ta</b> odam qoshishingiz kerak.\n"
                 f"Hozir: <b>{ref_count} ta</b> | Yetishmaydi: <b>{need} ta</b>\n\n"
                 f"Linkingizni oling va tarqating: /mylink"
             )
+            await send_dm(bot, user_id, dm_text)
+            await warn_in_group(
+                bot, message.chat.id, user_id,
+                user.username, user.full_name,
+                f"guruhga link tashlash uchun yana <b>{need} ta</b> odam qoshish kerak! /mylink"
+            )
             return
         else:
-            # Link limitini o'tgan — aldash
             already_warned = await db.is_link_warned(user_id)
             if not already_warned:
                 await db.set_link_warned(user_id)
@@ -119,11 +139,16 @@ async def guard_messages(message: Message, bot: Bot):
                     await message.delete()
                 except Exception:
                     pass
-                await send_dm(
-                    bot, user_id,
-                    f"⚠️ <b>Hali link tashlay olmaysiz!</b>\n\n"
-                    f"Yana <b>{extra} ta</b> odam qo'shishingiz kerak.\n"
+                dm_text = (
+                    f"Hali link tashlay olmaysiz!\n\n"
+                    f"Yana <b>{extra} ta</b> odam qoshishingiz kerak.\n"
                     f"Davom eting: /mylink"
+                )
+                await send_dm(bot, user_id, dm_text)
+                await warn_in_group(
+                    bot, message.chat.id, user_id,
+                    user.username, user.full_name,
+                    f"yana <b>{extra} ta</b> odam qoshishingiz kerak! /mylink"
                 )
                 return
 
@@ -144,12 +169,17 @@ async def guard_messages(message: Message, bot: Bot):
                 except Exception:
                     pass
                 need = link_limit - ref_count
-                await send_dm(
-                    bot, user_id,
-                    f"🚫 <b>Bu so'zni ishlatib bo'lmaydi!</b>\n\n"
-                    f"Guruhda bu so'zni ishlatish uchun <b>{link_limit} ta</b> odam qo'shishingiz kerak.\n"
+                dm_text = (
+                    f"Bu sozni ishlatib bolmaydi!\n\n"
+                    f"Guruhda bu sozni ishlatish uchun <b>{link_limit} ta</b> odam qoshishingiz kerak.\n"
                     f"Hozir: <b>{ref_count} ta</b> | Yetishmaydi: <b>{need} ta</b>\n\n"
                     f"Linkingizni oling: /mylink"
+                )
+                await send_dm(bot, user_id, dm_text)
+                await warn_in_group(
+                    bot, message.chat.id, user_id,
+                    user.username, user.full_name,
+                    f"bu sozni ishlatish uchun yana <b>{need} ta</b> odam qoshish kerak! /mylink"
                 )
                 return
 
@@ -160,13 +190,17 @@ async def guard_messages(message: Message, bot: Bot):
         except Exception:
             pass
         need = write_limit - ref_count
-        await send_dm(
-            bot, user_id,
-            f"✍️ <b>Yozish uchun odam qo'shing!</b>\n\n"
-            f"Guruhda yozish uchun <b>{write_limit} ta</b> odam qo'shishingiz kerak.\n"
+        dm_text = (
+            f"Yozish uchun odam qoshing!\n\n"
+            f"Guruhda yozish uchun <b>{write_limit} ta</b> odam qoshishingiz kerak.\n"
             f"Hozir: <b>{ref_count} ta</b> | Yetishmaydi: <b>{need} ta</b>\n\n"
-            f"Shaxsiy linkingizni oling va tarqating:\n"
-            f"/mylink"
+            f"Shaxsiy linkingizni oling: /mylink"
+        )
+        await send_dm(bot, user_id, dm_text)
+        await warn_in_group(
+            bot, message.chat.id, user_id,
+            user.username, user.full_name,
+            f"guruhda yozish uchun yana <b>{need} ta</b> odam qoshish kerak! /mylink"
         )
         return
 
